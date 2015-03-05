@@ -1,49 +1,75 @@
 # main.py
-import os
-from collections import deque
+from aux import File
+from pyhashxx import hashxx
 
-class File():
+class Data():
     def __init__(self, path):
-        self.fd = os.open(path, os.O_RDONLY, 0777)
-        self.lines = deque()
-        self.block_size = 1024 * 4096
-        self.buff = os.read(self.fd, self.block_size)
+        self.path = path
+        self.words = {}
+        self.sentences = {}
+        self.minhash = {}
 
-    def readline(self):
-        if len(self.lines) == 0:
-            while len(self.lines) == 0 and self.buff != '':
-                self.buff += os.read(self.fd, self.block_size)
-                tmplines = self.buff.split('\n')
-                c = len(tmplines)
-                self.buff = tmplines.pop()
+        self.word_count = 0
+        self.max_line = 100000
+        self.hash_count = 5
 
-                if c > 1: self.lines += tmplines
+    def _is_max_lines(self, line_count):
+        return not self.max_line is None and line_count >= self.max_line
 
-        if len(self.lines) != 0:
-            return self.lines.popleft()
-        else:
-            None
+    def _should_report_progress(self, line_count):
+        return line_count % 10000 == 0
 
-    def close(self):
-        os.close(self.fd)
+    def load(self):
+        print "Loading file..."
+        f = File(self.path)
+        line_count = 0
+        for sentence in f:
+            line_count += 1
+            parts = sentence.split(' ')
+            sid = parts[0]
+            self.sentences[sid] = set()
+            for word in parts[1:]:
+                if not word in self.words:
+                    self.word_count += 1
+                    self.words[word] = self.word_count
+                self.sentences[sid].add(self.words[word])
 
-    def __iter__(self):
-        return self
+            if self._should_report_progress(line_count):
+                print str(line_count) + " lines"
+            if self._is_max_lines(line_count):
+                break
 
-    def next(self):
-        line = self.readline()
-        if line is None:
-            raise StopIteration
-        else:
-            return line
+        f.close()
+
+        return (self.word_count, len(self.sentences))
+
+    def compute_minhash(self):
+        for word in self.words:
+            word_id = self.words[word]
+            hashes = {}
+            for i in range(self.hash_count):
+                hashes[i] = hashxx(word, seed = i)
+
+            for sid in self.sentences:
+                if word_id in self.sentences[sid]:
+                    for i in range(self.hash_count):
+                        key = (i, sid)
+                        if not key in self.minhash or hashes[i] < self.minhash[key]:
+                            self.minhash[key] = hashes[i]
+
+    def lsh(self):
+        print "LSH!!!"
 
 def main(argv):
-    f = File('test.txt')
+    path = argv[1]
+    data = Data(path)
 
-    for line in f:
-        print line
+    (words, sentences) = data.load()
+    print "Sentences Count: {0}".format(sentences)
+    print "Words Count: {0}".format(words)
 
-    f.close()
+    data.compute_minhash()
+
     return 0
 
 def target(*args):
