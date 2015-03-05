@@ -1,5 +1,8 @@
 from collections import deque
 import os
+import random
+import math
+import datetime
 
 class File():
     def __init__(self, path):
@@ -37,3 +40,16 @@ class File():
             raise StopIteration
         else:
             return line
+
+class HashFuns():
+    def __init__(self, n, m):
+        self.random_consts = []
+        self.m = m
+        self.a = 0.6180339887
+        random.seed(datetime.datetime.now())
+        for i in range(n):
+            self.random_consts.append(random.random())
+
+    def hash(self, k, i):
+        x = k * self.a
+        return int(math.floor(self.m * (x - math.floor(x))))
