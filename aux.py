@@ -53,3 +53,25 @@ class HashFuns():
     def hash(self, k, i):
         x = k * self.a
         return int(math.floor(self.m * (x - math.floor(x))))
+
+class Trie():
+    def __init__(self):
+        self.root = self._create_node(self)
+
+    def add(self, key, path):
+        self._recur_add(self.root, 0, key, path)
+
+    def _recur_add(self, node, index, key, path):
+        if index < len(path):
+            word = path[index]
+            if not word in node['words']:
+                node['words'][word] = self._create_node()
+
+            new_node = node['words']
+            self._recur_add(new_node, index + 1, key, path)
+        else:
+            node['sentences'].add(key)
+
+    def _create_node(self):
+        return {'words' : {},
+                'sentences': []}
