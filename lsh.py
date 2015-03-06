@@ -1,4 +1,4 @@
-from aux import File, HashFuns
+from aux import File, HashFuns, levenshtein
 # from pyhashxx import hashxx
 
 class Lsh():
@@ -114,34 +114,12 @@ class Lsh():
 
         # print self.candidates
 
-    def distance(self, sid1, sid2):
-        (_, s1) = self.sentences[sid1]
-        (_, s2) = self.sentences[sid2]
-
-        if len(s1) < len(s2):
-            return self.distance(sid2, sid1)
-
-        if len(s2) == 0:
-            return len(s1)
-
-        previous_row = range(len(s2) + 1)
-        for i, c1 in enumerate(s1):
-            current_row = [i + 1]
-            for j, c2 in enumerate(s2):
-                # j+1 instead of j since previous_row and current_row are one character longer
-                # than s2
-                insertions = previous_row[j + 1] + 1
-                deletions = current_row[j] + 1
-                substitutions = previous_row[j] + (c1 != c2)
-                current_row.append(min(insertions, deletions, substitutions))
-            previous_row = current_row
-
-        return previous_row[-1]
-
     def count_distance(self, dist):
         count = 0
         for (x, y) in self.candidates:
-            if self.distance(x, y) <= dist:
+            (_, sx) = self.sentences[x]
+            (_, sy) = self.sentences[y]
+            if levenshtein(sx, sy) <= dist:
                 count += 1
         return count
 
