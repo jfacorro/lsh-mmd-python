@@ -10,10 +10,10 @@ class Lsh():
         self.lsh = {}
 
         self.word_count = 0
-        self.max_line = 100000
+        self.max_line = 10000
 
-        self.band_count = 4
-        self.hash_fun_count = 10
+        self.hash_fun_count = 50
+        self.band_count = 10
         self.bucket_count = None
 
         self.candidates = set()
@@ -21,8 +21,9 @@ class Lsh():
     def _is_max_lines(self, line_count):
         return not self.max_line is None and line_count >= self.max_line
 
-    def _should_report_progress(self, count):
-        return count % 10000 == 0
+    def _report_progress(self, count, mod = 10000, name = ""):
+        if count % mod == 0:
+            print "Processed {0} {1}".format(count, name)
 
     def load(self):
         print "Loading file..."
@@ -42,14 +43,13 @@ class Lsh():
                 words_set.add(self.words[word])
                 words_list.append(self.words[word])
 
-            if self._should_report_progress(line_count):
-                print str(line_count) + " lines"
+            self._report_progress(line_count)
             if self._is_max_lines(line_count):
                 break
 
         f.close()
 
-        self.bucket_count = line_count * 1000
+        self.bucket_count = line_count * 10000
         return (self.word_count, len(self.sentences))
 
     def hash(self, l, m):
@@ -70,16 +70,16 @@ class Lsh():
         print "Computing MinHash..."
         hashfuns = HashFuns(self.hash_fun_count, self.bucket_count)
         hashes = {}
-        count = 0
+        wcount = 0
 
         for wid in range(self.word_count):
-            count =+ 1
-            if self._should_report_progress(count):
-                print str(count) + " lines"
+            wcount += 1
+            self._report_progress(wcount, mod = 1000, name = "words")
 
             for i in range(self.hash_fun_count):
                 hashes[i] = hashfuns.hash(wid, i)
 
+            scount = 0
             for sid in self.sentences:
                 (wids, _) = self.sentences[sid]
                 if wid in wids:
@@ -115,6 +115,7 @@ class Lsh():
         # print self.candidates
 
     def count_distance(self, dist):
+        print "Searching {0} pairs for distance {1} or less".format(len(self.candidates), dist)
         count = 0
         for (x, y) in self.candidates:
             (_, sx) = self.sentences[x]
